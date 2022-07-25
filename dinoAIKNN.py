@@ -216,31 +216,6 @@ class KeyClassifier:
     def updateState(self, state):
         pass
 
-
-def first(x):
-    return x[0]
-
-class KeySimplestClassifier(KeyClassifier):
-    def __init__(self, state):
-        self.state = state
-
-    def keySelector(self, distance, obHeight, speed, obType):
-        self.state = sorted(self.state, key=first)
-        for s, d in self.state:
-            if speed < s:
-                limDist = d
-                break
-        if distance <= limDist:
-            if isinstance(obType, Bird) and obHeight > 50:
-                return "K_DOWN"
-            else:
-                return "K_UP"
-        return "K_NO"
-
-    def updateState(self, state):
-        self.state = state
-
-
 def playerKeySelector():
     userInputArray = pygame.key.get_pressed()
 
@@ -250,7 +225,6 @@ def playerKeySelector():
         return "K_DOWN"
     else:
         return "K_NO"
-
 
 def playGame():
     global game_speed, x_pos_bg, y_pos_bg, points, obstacles
@@ -341,60 +315,15 @@ def playGame():
                 death_count += 1
                 return points
 
-
-# Change State Operator
-
-def change_state(state, position, vs, vd):
-    aux = state.copy()
-    s, d, h, c = state[position]
-    ns = s + vs
-    nd = d + vd
-    if ns < 15 or nd > 1000:
-        return []
-    return aux[:position] + [(ns, nd, h, c)] + aux[position + 1:]
-
-
-# Neighborhood
-
-def generate_neighborhood(state):
-    neighborhood = []
-    state_size = len(state)
-    for i in range(state_size):
-        ds = random.randint(1, 10) 
-        dd = random.randint(1, 100) 
-        new_states = [change_state(state, i, ds, 0), change_state(state, i, (-ds), 0), change_state(state, i, 0, dd),
-                      change_state(state, i, 0, (-dd))]
-        for s in new_states:
-            if s != []:
-                neighborhood.append(s)
-    return neighborhood
-
-
-# Gradiente Ascent
-
-def gradient_ascent(state, max_time):
-    start = time.process_time()
-    res, max_value = manyPlaysResults(2)
-    better = True
-    end = 0
-    while better and end - start <= max_time:
-        neighborhood = generate_neighborhood(state)
-        better = False
-        for s in neighborhood:
-            aiPlayer = KeyKNNClassifier(s)
-            res, value = manyPlaysResults(2)
-            if value > max_value:
-                state = s
-                max_value = value
-                better = True
-        end = time.process_time()
-    return state, max_value
-
 # <---- SOLUÇÃO IMPLEMENTADA POR MATHEUS LENKE COUTINHO ---->
-#  Distancia, Velocidade, Altura do Objeto, Classe
-function_inputs = [200, 10, 58, 100, 10, 58, 150, 10, 50, 200, 10, 100, 100, 10, 120, 50, 10, 120, 1000, 10, 58, 500, 10, 58, 400, 10, 58]
-input_classes = [1,1,1,0,0,0,2,2,2]
-num_generations = 50
+
+#  9 genes, em que em cada tupla temos: Distancia, Velocidade, Altura do Objeto
+function_inputs = [200, 30, 58, 100, 10, 58, 150, 20, 50, 200, 30, 100, 100, 20, 120, 50, 10, 120, 1000, 30, 58, 500, 20, 58, 400, 10, 58]
+# 0 -> Agacha
+# 1 -> Pula
+# 2 -> Faz nada
+input_classes = [1,1,1,0,0,0,2,2,2] # As classes da lista de genes
+num_generations = 2000 # Número alto para limitar por tempo
 num_parents_mating = 2
 sol_per_pop = 10
 num_genes = len(function_inputs)
@@ -404,18 +333,15 @@ crossover_type = "single_point"
 mutation_type = "random"
 mutation_percent_genes = 10
 
-def getStateClasses(tuples):
-    classes = []
-    for item in tuples:
-        classes.append(item[3])
-    return classes
-
 def getStateParameters(tuples):
     params = []
     for item in tuples:
         # Normalizando os parâmetros
-        params.append((item[0] / 1500, item[1]/ 100, item[2] / 123))
+        params.append(normalizeParameters(item))
     return params
+
+def normalizeParameters(items):
+    return (items[0] / 1500, items[1] / 100, items[2] / 123)
 
 class KeyKNNClassifier(KeyClassifier):
     def __init__(self, state):
@@ -424,7 +350,8 @@ class KeyKNNClassifier(KeyClassifier):
         self.knn.fit(getStateParameters(state), input_classes)
 
     def keySelector(self, distance, speed, objectHeight):
-        results = self.knn.predict([(distance / 1500, speed / 100, objectHeight / 123)])
+        # Realizando Predict com os dados normalizados
+        results = self.knn.predict([normalizeParameters([distance, speed, objectHeight])])
         if results[0] == 0:
             return "K_DOWN"
         elif results[0] == 1:
@@ -440,6 +367,7 @@ def genes_to_tuple(solution):
         items.append(solution[i:i+3])
     return items
 
+# Função que roda o jogo e retorna a pontuação daquele jogo para o algoritmo genético
 def fitness_function(solution, solution_idx):
     solution = genes_to_tuple(solution)
     aiPlayer = KeyKNNClassifier(solution)
@@ -456,12 +384,10 @@ def run_genetic_algorithm():
                        keep_parents=keep_parents,
                        crossover_type=crossover_type,
                        mutation_type=mutation_type,
-                    #    initial_population=[function_inputs],
                        mutation_percent_genes=mutation_percent_genes,
                        gene_space=[range(0,1500), range(10, 100), [38, 58, 123]] * 9,
                     #    parallel_processing=['thread', sol_per_pop]
                        )
-    # if __name__ == '__main__':  
     ga_instance.run()
     solution, solution_fitness, solution_idx = ga_instance.best_solution()
     print("Parâmetros da melhor solução: : {solution}".format(solution=solution))
@@ -469,46 +395,58 @@ def run_genetic_algorithm():
     save_solution_to_file(ga_instance, solution, solution_fitness)
     return solution, solution_fitness
 
+def save_actual_solution_to_file(solution, solution_fitness):
+    f = open("temporary.txt", "w")
+    f.write(solution)
+    f.close()
+
 def save_solution_to_file(ga_instance, solution, solution_fitness):
     f = open("results.txt", "w")
-    f.write("Parâmetros da melhor solução: : {solution}".format(solution=solution))
-    f.write("Valor Fitness da melhor solução = {solution_fitness}".format(solution_fitness=solution_fitness))
+    f.write("Parâmetros da melhor solução:{solution}".format(solution=solution))
+    f.write("\nValor Fitness da melhor solução = {solution_fitness}".format(solution_fitness=solution_fitness))
+    f.write("\n")
     f.close()
 
 def on_generation(ga_instance):
     now = time.time() - START_TIME
 
     if now > MAXIMUM_TRAINING_TIME:
-        print(f"Finalizando treinamento após {now} minutos")
+        print(f"Finalizando treinamento após {now/60} minutos")
         return 'stop'
-    print("Continue a nadar! {now} minutos se passaram!")
+    print(f"Continue a nadar! {now/60} minutos se passaram!")
     return 'continue'
 
 from scipy import stats
 import numpy as np
 
 def manyPlaysResults(rounds):
+    print(f"Rodando {rounds} rounds com parâmetros: {function_inputs}")
+    aiPlayer = KeyKNNClassifier(genes_to_tuple(function_inputs))
     results = []
     for round in range(rounds):
         results += [playGame()]
     npResults = np.asarray(results)
-    print("Resultados: " + npResults)
+    print(f"Resultados: {npResults}")
     return (results, npResults.mean() - npResults.std())
 
-def calculate_final_results():
-    pass
+def save_final_results_to_file(results, mean, std, value):
+    f = open("results.txt", "a")
+    f.write(f"Resultados dos 30 rounds : {results} \n")
+    f.write(f"Média: {mean}\n")
+    f.write(f"Std: {std}\n")
+    f.write(f"Valor: {value}\n")
+    f.close()
 
 def main():
     global aiPlayer
-    # 0 -> Abaixa
-    # 1 -> Pula
-    # 2 -> Faz nada
+    global function_inputs
     aiPlayer = KeyKNNClassifier(genes_to_tuple(function_inputs))
     solution, solution_fitness = run_genetic_algorithm()
-    # print(results)
-    # aiPlayer = KeyKNNClassifier(best_state)
-    # res, value = manyPlaysResults(30)
-    # npRes = np.asarray(res)
-    # print(res, npRes.mean(), npRes.std(), value)
+    function_inputs = solution
+    # Com a solução, vamos rodar 30 exemplos para colhermos o resultado final.
+    res, value = manyPlaysResults(30)
+    npRes = np.asarray(res)
+    print(res, npRes.mean(), npRes.std(), value)
+    save_final_results_to_file(res, npRes.mean(), npRes.std(), value)
 
 main()

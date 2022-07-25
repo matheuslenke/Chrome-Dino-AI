@@ -283,9 +283,6 @@ def playGame(aiPlayer, seed):
 				death_count += 1
 				return points
 
-
-
-
 # Change State Operator
 
 def change_state(state, position, vs, vd):
