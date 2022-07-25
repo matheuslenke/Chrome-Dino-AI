@@ -277,9 +277,6 @@ def playGame(aiPlayer, seed):
 			obstacle.update()
 
 		score()
-        
-		if DISPLAY_MODE == "DRAW":
-			cloud.draw()
 
 		for obstacle in obstacles:
 			if player.dino_rect.colliderect(obstacle.rect):

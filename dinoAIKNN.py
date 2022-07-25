@@ -38,8 +38,8 @@ CLOUD = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
 
 BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
 
-START_TIME = time.process_time()
-MAXIMUM_TRAINING_TIME = 10 * 60 # Tempo em minutos para limitar o tempo de treino
+START_TIME = time.time()
+MAXIMUM_TRAINING_TIME = 5 * 60 # Tempo em minutos para limitar o tempo de treino
 
 class Dinosaur:
     X_POS = 90
@@ -458,8 +458,10 @@ def run_genetic_algorithm():
                        mutation_type=mutation_type,
                     #    initial_population=[function_inputs],
                        mutation_percent_genes=mutation_percent_genes,
-                       gene_space=[range(0,1500), range(10, 100), [38, 58, 123]] * 9
+                       gene_space=[range(0,1500), range(10, 100), [38, 58, 123]] * 9,
+                    #    parallel_processing=['thread', sol_per_pop]
                        )
+    # if __name__ == '__main__':  
     ga_instance.run()
     solution, solution_fitness, solution_idx = ga_instance.best_solution()
     print("Parâmetros da melhor solução: : {solution}".format(solution=solution))
@@ -473,18 +475,17 @@ def save_solution_to_file(ga_instance, solution, solution_fitness):
     f.write("Valor Fitness da melhor solução = {solution_fitness}".format(solution_fitness=solution_fitness))
     f.close()
 
-def on_generation():
-    now = time.process_time() - START_TIME
+def on_generation(ga_instance):
+    now = time.time() - START_TIME
 
     if now > MAXIMUM_TRAINING_TIME:
         print(f"Finalizando treinamento após {now} minutos")
         return 'stop'
-    print("Continuando treinamento!")
+    print("Continue a nadar! {now} minutos se passaram!")
     return 'continue'
 
 from scipy import stats
 import numpy as np
-
 
 def manyPlaysResults(rounds):
     results = []
@@ -493,7 +494,6 @@ def manyPlaysResults(rounds):
     npResults = np.asarray(results)
     print("Resultados: " + npResults)
     return (results, npResults.mean() - npResults.std())
-
 
 def calculate_final_results():
     pass
@@ -510,6 +510,5 @@ def main():
     # res, value = manyPlaysResults(30)
     # npRes = np.asarray(res)
     # print(res, npRes.mean(), npRes.std(), value)
-
 
 main()
