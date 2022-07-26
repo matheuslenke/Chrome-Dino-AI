@@ -12,7 +12,7 @@ pygame.init()
 # Valid values: HUMAN_MODE or AI_MODE
 GAME_MODE = "AI_MODE"
 CONTINUE_TRAINING = True
-TRAINING_MODE = "NORMAL" # MULTI_THREAD or NORMAL
+TRAINING_MODE = "MULTI_THREAD" # MULTI_THREAD or NORMAL
 
 # Global Constants
 SCREEN_HEIGHT = 600
@@ -42,7 +42,7 @@ CLOUD = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
 BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
 
 START_TIME = time.time()
-MAXIMUM_TRAINING_TIME = 6 * 60 * 60 # Tempo em minutos para limitar o tempo de treino
+MAXIMUM_TRAINING_TIME = 5 * 60 # Tempo em minutos para limitar o tempo de treino
 
 class Dinosaur:
     X_POS = 90
@@ -540,40 +540,4 @@ def manyPlaysResults(rounds):
     print(f"Resultados: {npResults}")
     return (results, npResults.mean() - npResults.std())
 
-def save_final_results_to_file(results, npRes):
-    f = open("results.txt", "a")
-    f.write(f"Resultados dos 30 rounds : {results} \n")
-    f.write(f"Média: {npRes.mean()}\n")
-    f.write(f"Std: {npRes.std()}\n")
-    f.write(f"Valor: {npRes.mean() - npRes.std()}\n")
-    f.close()
 
-def compare_results_with_teacher(myResults, npRes):
-    flavio_results = [1214.0, 759.5, 1164.25, 977.25, 1201.0, 930.0, 1427.75, 799.5, 1006.25, 783.5, 728.5, 419.25, 1389.5, 730.0, 1306.25, 675.5, 1359.5, 1000.25, 1284.5, 1350.0, 751.0, 1418.75, 1276.5, 1645.75, 860.0, 745.5, 1426.25, 783.5, 1149.75, 1482.25]
-    print("-------Resultados do professor-------\n", flavio_results)
-    flavio_df = pd.DataFrame(flavio_results)
-    print(flavio_df)
-    flavioNpRes = np.asarray(flavio_results)
-    print("Média: ", flavioNpRes.mean())
-    print("Desvio padrão: ", flavioNpRes.std())
-
-    print("\n\n-------Meus resultados-------\n", myResults)
-    my_df = pd.DataFrame(myResults)
-    print(my_df)
-
-    s,p = wilcoxon (myResults, flavio_results)
-    print(s, p)
-
-def main():
-    global aiPlayer
-    global function_inputs
-    aiPlayer = KeyKNNClassifier(genes_to_tuple(function_inputs))
-    solution, solution_fitness = run_genetic_algorithm()
-    function_inputs = solution
-    # Com a solução, vamos rodar 30 exemplos para colhermos o resultado final.
-    res, value = manyPlaysResults(30)
-    npRes = np.asarray(res)
-    save_final_results_to_file(res, npRes)
-    compare_results_with_teacher(res, npRes)
-
-main()
