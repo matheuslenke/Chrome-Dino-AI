@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import pygame
 import os
 import random
@@ -12,6 +13,7 @@ pygame.init()
 # Valid values: HUMAN_MODE or AI_MODE
 GAME_MODE = "AI_MODE"
 CONTINUE_TRAINING = True
+# Treinamento Multi-thread NÃO FUNCIONAL!!!!
 TRAINING_MODE = "NORMAL" # MULTI_THREAD or NORMAL
 
 # Global Constants
@@ -42,7 +44,7 @@ CLOUD = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
 BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
 
 START_TIME = time.time()
-MAXIMUM_TRAINING_TIME = 6 * 60 * 60 # Tempo em minutos para limitar o tempo de treino
+MAXIMUM_TRAINING_TIME = 24 * 60 * 60 # Tempo em horas para limitar o tempo de treino
 
 class Dinosaur:
     X_POS = 90
@@ -249,15 +251,6 @@ def playGame(aiPlayer):
     death_count = 0
     spawn_dist = 0
 
-    userInputArray = pygame.key.get_pressed()
-    if userInputArray[pygame.K_p]:
-        CONTINUE_TRAINING = False
-    # if TRAINING_MODE != "MULTI_THREAD" and CONTINUE_TRAINING == False:
-    #     text = font.render("Treinamento irá terminar")
-    #     textRect = text.get_rect()
-    #     textRect.center = (500, 40)
-    #     SCREEN.blit(text, textRect)
-
     def score():
         global points, game_speed
         points += 0.25
@@ -372,8 +365,6 @@ def playGameMultiThread(aiPlayer):
         if GAME_MODE == "HUMAN_MODE":
             userInput = playerKeySelector()
         else:
-            # userInput = aiPlayer.keySelector(game_speed, player, obType)
-            # userInput = aiPlayer.keySelector(game_speed, obstacles, player)
             userInput = aiPlayer.keySelector(distance, obHeight, game_speed, obType)
             
 
@@ -525,6 +516,7 @@ from scipy.stats import ttest_rel, wilcoxon
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
+import seaborn as sns
 
 def manyPlaysResults(rounds):
     print(f"Rodando {rounds} rounds com parâmetros: {function_inputs}")
@@ -561,8 +553,24 @@ def compare_results_with_teacher(myResults, npRes):
     my_df = pd.DataFrame(myResults)
     print(my_df)
 
+    print("Média: ", npRes.mean())
+    print("Desvio padrão: ", npRes.std())
+
     s,p = wilcoxon (myResults, flavio_results)
-    print(s, p)
+    print("Teste Wilcoxon",s, p)
+
+    s2,p2 = ttest_rel(myResults, flavio_results)
+    print("T test",s2, p2)
+
+    scores = {
+        "Matheus": myResults,
+        "Professor": flavio_results
+    }
+
+    score_df = pd.DataFrame(scores)
+    sns.boxplot(data=score_df)
+    plt.show()
+
 
 def main():
     global aiPlayer
@@ -572,8 +580,8 @@ def main():
     function_inputs = solution
     # Com a solução, vamos rodar 30 exemplos para colhermos o resultado final.
     res, value = manyPlaysResults(30)
-    npRes = np.asarray(res)
     save_final_results_to_file(res, npRes)
+    npRes = np.asarray(res)
     compare_results_with_teacher(res, npRes)
 
 main()
