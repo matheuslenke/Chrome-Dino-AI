@@ -580,8 +580,8 @@ def main():
     function_inputs = solution
     # Com a solução, vamos rodar 30 exemplos para colhermos o resultado final.
     res, value = manyPlaysResults(30)
-    save_final_results_to_file(res, npRes)
     npRes = np.asarray(res)
+    save_final_results_to_file(res, npRes)
     compare_results_with_teacher(res, npRes)
 
 main()
